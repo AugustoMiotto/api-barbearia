@@ -1,0 +1,31 @@
+
+
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mapeia seu código local para dentro do container para manter o Hot Reload (tsx watch) funcionando
+      - .:/app 
+      - /app/node_modules
+    environment:
+      # A API agora vai se conectar ao MySQL que está no container vizinho chamado "db"
+      - DATABASE_URL=mysql://root:root@db:3306/barbearia_db
+      - JWT_SECRET=minha_chave_secreta_super_segura_123
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306" # Expõe a porta 3306 para você poder inspecionar o banco de fora, se quiser
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=barbearia_db
+    volumes:
+      # Garante que os dados do banco não sumam se o container for desligado
+      - mysql_data:/var/lib/mysql 
+
+volumes:
+  mysql_data:

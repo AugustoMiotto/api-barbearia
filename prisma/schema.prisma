@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 2. Enums (Opções pré-definidas)
+enum Role {
+  CLIENT
+  BARBER
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  COMPLETED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// 3. Modelos (Tabelas)
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password      String
+  phone         String?
+  role          Role      @default(CLIENT)
+  createdAt     DateTime  @default(now())
+  
+  // Relacionamentos
+  ownedBarbershops Barbershop[]  @relation("BarbershopOwner")
+  clientAppointments Appointment[] @relation("ClientAppointments")
+  barberAppointments Appointment[] @relation("BarberAppointments")
+  availabilities     Availability[]
+}
+
+model Barbershop {
+  id          Int       @id @default(autoincrement())
+  name        String
+  address     String
+  ownerId     Int
+  owner       User      @relation("BarbershopOwner", fields: [ownerId], references: [id])
+  
+  services    Service[]
+  transactions FinancialTransaction[]
+}
+
+model Service {
+  id                Int       @id @default(autoincrement())
+  name              String
+  description       String?
+  price             Decimal   @db.Decimal(10, 2)
+  durationMinutes   Int
+  barbershopId      Int
+  barbershop        Barbershop @relation(fields: [barbershopId], references: [id])
+  
+  appointments      Appointment[]
+}
+
+model Availability {
+  id          Int       @id @default(autoincrement())
+  barberId    Int
+  barber      User      @relation(fields: [barberId], references: [id])
+  dayOfWeek   Int       // 0 = Domingo, 1 = Segunda...
+  startTime   String    // ex: "09:00"
+  endTime     String    // ex: "18:00"
+}
+
+model Appointment {
+  id          Int       @id @default(autoincrement())
+  clientId    Int
+  client      User      @relation("ClientAppointments", fields: [clientId], references: [id])
+  barberId    Int
+  barber      User      @relation("BarberAppointments", fields: [barberId], references: [id])
+  serviceId   Int
+  service     Service   @relation(fields: [serviceId], references: [id])
+  
+  date        DateTime  @db.Date
+  startTime   String    // ex: "14:00"
+  endTime     String    // ex: "14:30"
+  status      AppointmentStatus @default(PENDING)
+  
+  // Relacionamento 1 para 1 com o financeiro (se concluído, gera receita)
+  transaction FinancialTransaction?
+}
+
+model FinancialTransaction {
+  id              Int       @id @default(autoincrement())
+  barbershopId    Int
+  barbershop      Barbershop @relation(fields: [barbershopId], references: [id])
+  type            TransactionType
+  amount          Decimal   @db.Decimal(10, 2)
+  description     String
+  date            DateTime  @default(now())
+  
+  appointmentId   Int?      @unique // Opcional, pois pode ser uma despesa de aluguel (que não tem agendamento)
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id])
+}
