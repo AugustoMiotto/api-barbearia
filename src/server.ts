@@ -3,27 +3,48 @@ import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
-
-// Importa o nosso arquivo centralizador de rotas (index.ts)
-// Nota: Mesmo usando TypeScript, no formato ESM as importações locais costumam exigir a extensão .js no final
-import { router } from './routes/index.js'; 
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { router } from './routes/index.js';
+import { errorHandler } from './middlewares/error.middleware.js';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// 1. Blindagem de Segurança (Helmet)
+app.use(helmet());
+
+// 2. Proteção contra DDoS e força bruta (Rate Limiter)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Limita a 100 requisições por IP a cada 15 min
+  message: 'Muitas requisições deste IP, tente novamente mais tarde.'
+});
+app.use('/api', limiter);
+
+// 3. Correção do CORS (Permite que o Flutter acesse o Token)
+app.use(cors({
+  origin: '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Diz para o Express que TODAS as rotas do nosso 'router' vão começar com '/api'
+// 4. Rotas Principais
 app.use('/api', router);
 
-// Mantemos a rota raiz só para teste de saúde da API
 app.get('/', (req: Request, res: Response) => {
-  res.json({ message: 'API da Barbearia rodando com TypeScript!' });
+  res.json({ message: 'API da Barbearia blindada e rodando!' });
 });
+
+// 5. O Ralo Global de Erros (Sempre por último!)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta http://localhost:${PORT}`);
+  console.log(`🚀 Servidor protegido rodando na porta http://localhost:${PORT}`);
 });
