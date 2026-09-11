@@ -1,6 +1,8 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
+import morgan from 'morgan';
 
 // Importa o nosso arquivo centralizador de rotas (index.ts)
 // Nota: Mesmo usando TypeScript, no formato ESM as importações locais costumam exigir a extensão .js no final
@@ -9,6 +11,8 @@ import { router } from './routes/index.js';
 dotenv.config();
 
 const app = express();
+app.use(cors());
+app.use(morgan('dev'));
 app.use(express.json());
 
 // Diz para o Express que TODAS as rotas do nosso 'router' vão começar com '/api'

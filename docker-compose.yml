@@ -5,6 +5,7 @@ services:
     build: .
     ports:
       - "3000:3000"
+    command: npm run dev
     volumes:
       # Mapeia seu código local para dentro do container para manter o Hot Reload (tsx watch) funcionando
       - .:/app 
@@ -19,7 +20,7 @@ services:
   db:
     image: mysql:8.0
     ports:
-      - "3306:3306" # Expõe a porta 3306 para você poder inspecionar o banco de fora, se quiser
+      - "3307:3306" # Expõe a porta 3306 para você poder inspecionar o banco de fora, se quiser
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=barbearia_db
